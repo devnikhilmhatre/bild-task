@@ -10,7 +10,7 @@ import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class UsersService {
-  private readonly tableName = 'users';
+  private readonly tableName = 'Users';
 
   constructor(
     private readonly dynamoDBService: DynamoDBService,

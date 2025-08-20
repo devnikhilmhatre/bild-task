@@ -8,7 +8,7 @@ import { CheckIn } from './entities/check-in.entity';
 // Only manager can access this crud
 @Injectable()
 export class CheckInsService {
-  private readonly tableName = 'check_ins';
+  private readonly tableName = 'CheckIns';
 
   constructor(private readonly dynamoDBService: DynamoDBService) { }
 
