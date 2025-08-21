@@ -10,33 +10,51 @@ import { CheckIn } from './entities/check-in.entity';
 export class CheckInsService {
   private readonly tableName = 'CheckIns';
 
-  constructor(private readonly dynamoDBService: DynamoDBService) { }
+  constructor(private readonly dynamoDBService: DynamoDBService) {}
 
-  async create(createCheckInDto: CreateCheckInDto): Promise<CheckIn> {
-    let managerId = "1" // @NOTE: later pick it up from jwt
+  async create(
+    orgId: string | undefined,
+    createCheckInDto: CreateCheckInDto,
+    email: string,
+  ): Promise<CheckIn> {
+    if (!orgId) {
+      throw new NotFoundException(`Org not found`);
+    }
 
     const checkIn: CheckIn = {
       id: uuidv4(),
       title: createCheckInDto.title,
       dueDate: createCheckInDto.dueDate,
       questions: createCheckInDto.questions,
-      createdBy: managerId,
-      ModifiedBy: managerId,
+      createdBy: email,
+      ModifiedBy: email,
       createdAt: new Date().toISOString(),
       ModifiedAt: new Date().toISOString(),
+      orgId,
     };
 
-    await this.dynamoDBService.getClient().put({
-      TableName: this.tableName,
-      Item: checkIn,
-    }).promise();
+    await this.dynamoDBService
+      .getClient()
+      .put({
+        TableName: this.tableName,
+        Item: checkIn,
+      })
+      .promise();
 
     return checkIn;
   }
 
-  async findAll(limit = 10, lastKey?: string): Promise<{ items: CheckIn[]; nextKey?: string }> {
-    const params: AWS.DynamoDB.DocumentClient.ScanInput = {
+  async findAll(
+    orgId: string | undefined,
+    limit = 10,
+    lastKey?: string,
+  ): Promise<{ items: CheckIn[]; nextKey?: string }> {
+    const params: AWS.DynamoDB.DocumentClient.QueryInput = {
       TableName: this.tableName,
+      KeyConditionExpression: 'orgId = :orgId',
+      ExpressionAttributeValues: {
+        ':orgId': orgId,
+      },
       Limit: limit,
     };
 
@@ -44,7 +62,10 @@ export class CheckInsService {
       params.ExclusiveStartKey = { id: lastKey };
     }
 
-    const result = await this.dynamoDBService.getClient().scan(params).promise();
+    const result = await this.dynamoDBService
+      .getClient()
+      .scan(params)
+      .promise();
 
     return {
       items: result.Items as CheckIn[],
@@ -52,11 +73,18 @@ export class CheckInsService {
     };
   }
 
-  async findOne(id: string): Promise<CheckIn> {
-    const result = await this.dynamoDBService.getClient().get({
-      TableName: this.tableName,
-      Key: { id },
-    }).promise();
+  async findOne(id: string | undefined): Promise<CheckIn> {
+    if (!id) {
+      throw new NotFoundException(`Check-in ${id} not found`);
+    }
+
+    const result = await this.dynamoDBService
+      .getClient()
+      .get({
+        TableName: this.tableName,
+        Key: { id },
+      })
+      .promise();
 
     if (!result.Item) {
       throw new NotFoundException(`Check-in ${id} not found`);
@@ -64,32 +92,39 @@ export class CheckInsService {
     return result.Item as CheckIn;
   }
 
-  async update(id: string, updateCheckInDto: UpdateCheckInDto): Promise<CheckIn> {
+  async update(
+    id: string | undefined,
+    updateCheckInDto: UpdateCheckInDto,
+    email: string,
+  ): Promise<CheckIn> {
     const existing = await this.findOne(id);
-    let managerId = "1" // @NOTE: later pick it up from jwt
 
     const updated: CheckIn = {
       ...existing,
       ...updateCheckInDto,
-      ModifiedBy: managerId,
+      ModifiedBy: email,
       ModifiedAt: new Date().toISOString(),
     };
 
-    await this.dynamoDBService.getClient().put({
-      TableName: this.tableName,
-      Item: updated,
-    }).promise();
+    await this.dynamoDBService
+      .getClient()
+      .put({
+        TableName: this.tableName,
+        Item: updated,
+      })
+      .promise();
 
     return updated;
   }
 
-  async remove(id: string): Promise<void> {
-    // Check if exists first (for clean 404)
+  async remove(id: string | undefined): Promise<void> {
     await this.findOne(id);
-
-    await this.dynamoDBService.getClient().delete({
-      TableName: this.tableName,
-      Key: { id },
-    }).promise();
+    await this.dynamoDBService
+      .getClient()
+      .delete({
+        TableName: this.tableName,
+        Key: { id },
+      })
+      .promise();
   }
 }

@@ -48,7 +48,11 @@ export class OrgService {
     return { orgId, name: dto.name };
   }
 
-  async addMember(orgId: string, dto: AddMemberDto) {
+  async addMember(orgId: string | undefined, dto: AddMemberDto) {
+    if (!orgId) {
+      return {};
+    }
+
     const createdAt = new Date().toISOString();
 
     await this.client()
@@ -66,18 +70,39 @@ export class OrgService {
     return { orgId, userId: dto.email, role: dto.role };
   }
 
-  async getMembers(orgId: string) {
-    const result = await this.client()
-      .query({
-        TableName: this.orgMembersTable,
-        KeyConditionExpression: 'orgId = :orgId',
-        ExpressionAttributeValues: {
-          ':orgId': orgId,
-        },
-      })
-      .promise();
+  async getMembers(
+    orgId: string | undefined,
+    limit = 10,
+    lastKey?: string,
+  ): Promise<{ items: OrgMember[]; nextKey?: string }> {
+    if (!orgId) {
+      return {
+        items: [],
+        nextKey: undefined,
+      };
+    }
 
-    return result.Items || [];
+    const params: AWS.DynamoDB.DocumentClient.QueryInput = {
+      TableName: this.orgMembersTable,
+      KeyConditionExpression: 'orgId = :orgId',
+      ExpressionAttributeValues: {
+        ':orgId': orgId,
+      },
+      Limit: limit,
+    };
+
+    if (lastKey) {
+      params.ExclusiveStartKey = { orgId, email: lastKey };
+    }
+
+    const result = await this.client().query(params).promise();
+
+    return {
+      items: result.Items as OrgMember[],
+      nextKey: result.LastEvaluatedKey
+        ? result.LastEvaluatedKey.email
+        : undefined,
+    };
   }
 
   async getOrgsOfUser(email: string): Promise<OrgWithRoleDto> {

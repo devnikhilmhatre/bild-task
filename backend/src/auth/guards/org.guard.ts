@@ -7,6 +7,7 @@ import {
 import { CacheService } from '../../cache/cache.service';
 import { OrgService } from '../../org/org.service';
 import { type RequestWithUser } from './types';
+import { OrgWithRoleDto } from './../../org/dto/org-with-role.dto';
 
 @Injectable()
 export class OrgGuard implements CanActivate {
@@ -25,19 +26,19 @@ export class OrgGuard implements CanActivate {
 
     const cacheKey = `user:${user.email}`;
 
-    let role = await this.cache.get(cacheKey);
+    let member: OrgWithRoleDto | null = await this.cache.get(cacheKey);
 
-    if (!role) {
-      const member = await this.orgService.getMembers(user.email);
+    if (!member) {
+      member = await this.orgService.getOrgsOfUser(user.email);
       if (!member) {
         throw new UnauthorizedException('No access to this org');
       }
-      role = member;
 
-      await this.cache.set(cacheKey, role, 900);
+      await this.cache.set(cacheKey, member, 900);
     }
 
-    request.user.role = role;
+    request.user.role = member.role;
+    request.user.orgId = member.id;
     return true;
   }
 }

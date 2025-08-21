@@ -83,12 +83,12 @@ export class UsersService {
     return updated;
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(email: string): Promise<void> {
     await this.dynamoDBService
       .getClient()
       .delete({
         TableName: this.tableName,
-        Key: { id },
+        Key: { email },
       })
       .promise();
   }
