@@ -1,8 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { DynamoDBService } from '../dynamodb/dynamodb.service';
 import { CreateOrgDto } from './dto/create-org.dto';
 import { AddMemberDto } from './dto/add-member.dto';
+import { OrgWithRoleDto } from './dto/org-with-role.dto';
 import { v4 as uuidv4 } from 'uuid';
+import { OrgMember } from './entities/org-member.entity';
 
 @Injectable()
 export class OrgService {
@@ -38,7 +40,7 @@ export class OrgService {
           orgId,
           userId,
           role: 'manager',
-          joinedAt: createdAt,
+          createdAt: createdAt,
         },
       })
       .promise();
@@ -47,7 +49,7 @@ export class OrgService {
   }
 
   async addMember(orgId: string, dto: AddMemberDto) {
-    const joinedAt = new Date().toISOString();
+    const createdAt = new Date().toISOString();
 
     await this.client()
       .put({
@@ -56,7 +58,7 @@ export class OrgService {
           orgId,
           email: dto.email,
           role: dto.role,
-          joinedAt,
+          createdAt,
         },
       })
       .promise();
@@ -78,18 +80,36 @@ export class OrgService {
     return result.Items || [];
   }
 
-  // async getOrgsOfUser(userId: string) {
-  //   const result = await this.client()
-  //     .query({
-  //       TableName: this.orgMembersTable,
-  //       IndexName: 'UserIdIndex',
-  //       KeyConditionExpression: 'userId = :userId',
-  //       ExpressionAttributeValues: {
-  //         ':userId': userId,
-  //       },
-  //     })
-  //     .promise();
+  async getOrgsOfUser(email: string): Promise<OrgWithRoleDto> {
+    const memberResult = await this.client()
+      .get({
+        TableName: this.orgMembersTable,
+        Key: { email },
+      })
+      .promise();
 
-  //   return result.Items || [];
-  // }
+    if (!memberResult.Item) {
+      throw new NotFoundException(`No org found for user ${email}`);
+    }
+
+    const member: OrgMember = memberResult.Item as OrgMember;
+
+    const orgResult = await this.client()
+      .get({
+        TableName: this.orgsTable,
+        Key: { id: member.orgId },
+      })
+      .promise();
+
+    if (!orgResult.Item) {
+      throw new NotFoundException(`Org ${member.orgId} not found`);
+    }
+
+    return {
+      id: orgResult.Item.id,
+      name: orgResult.Item.name,
+      role: member.role,
+      createdAt: member.createdAt,
+    };
+  }
 }

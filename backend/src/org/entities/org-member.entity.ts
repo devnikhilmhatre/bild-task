@@ -1,6 +1,6 @@
 export class OrgMember {
-    orgId: string;
-    userId: string;
-    role: 'manager' | 'member';
-    joinedAt: string;
+  orgId: string;
+  email: string;
+  role: 'manager' | 'member';
+  createdAt: string;
 }
