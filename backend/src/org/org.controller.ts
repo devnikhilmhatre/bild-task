@@ -15,7 +15,7 @@ import { OrgGuard } from '../auth/guards/org.guard';
 import { type RequestWithUser } from '../auth/guards/types';
 
 @Controller('orgs')
-export class OrgsController {
+export class OrgController {
   constructor(private readonly orgService: OrgService) {}
 
   @Post()

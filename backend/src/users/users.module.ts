@@ -1,17 +1,12 @@
 import { Module } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
-import { JwtModule } from '@nestjs/jwt';
+import { DynamoDBModule } from './../dynamodb/dynamodb.module';
 
 @Module({
-  imports: [
-
-    JwtModule.register({
-      secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: '1h' },
-    }),
-  ],
+  imports: [DynamoDBModule],
   controllers: [UsersController],
   providers: [UsersService],
+  exports: [UsersService],
 })
-export class UsersModule { }
+export class UsersModule {}
