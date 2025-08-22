@@ -5,6 +5,17 @@ import { CreateCheckInDto } from './dto/create-check-in.dto';
 import { UpdateCheckInDto } from './dto/update-check-in.dto';
 import { CheckIn } from './entities/check-in.entity';
 
+import {
+  GetCommandInput,
+  GetCommand,
+  PutCommandInput,
+  PutCommand,
+  ScanCommand,
+  ScanCommandInput,
+  DeleteCommandInput,
+  DeleteCommand,
+} from '@aws-sdk/lib-dynamodb';
+
 // Only manager can access this crud
 @Injectable()
 export class CheckInsService {
@@ -33,13 +44,12 @@ export class CheckInsService {
       orgId,
     };
 
-    await this.dynamoDBService
-      .getClient()
-      .put({
-        TableName: this.tableName,
-        Item: checkIn,
-      })
-      .promise();
+    const params: PutCommandInput = {
+      TableName: this.tableName,
+      Item: checkIn,
+    };
+
+    await this.dynamoDBService.getClient.send(new PutCommand(params));
 
     return checkIn;
   }
@@ -49,9 +59,9 @@ export class CheckInsService {
     limit = 10,
     lastKey?: string,
   ): Promise<{ items: CheckIn[]; nextKey?: string }> {
-    const params: AWS.DynamoDB.DocumentClient.QueryInput = {
+    const params: ScanCommandInput = {
       TableName: this.tableName,
-      KeyConditionExpression: 'orgId = :orgId',
+      FilterExpression: 'orgId = :orgId',
       ExpressionAttributeValues: {
         ':orgId': orgId,
       },
@@ -62,10 +72,9 @@ export class CheckInsService {
       params.ExclusiveStartKey = { id: lastKey };
     }
 
-    const result = await this.dynamoDBService
-      .getClient()
-      .scan(params)
-      .promise();
+    const result = await this.dynamoDBService.getClient.send(
+      new ScanCommand(params),
+    );
 
     return {
       items: result.Items as CheckIn[],
@@ -78,13 +87,14 @@ export class CheckInsService {
       throw new NotFoundException(`Check-in ${id} not found`);
     }
 
-    const result = await this.dynamoDBService
-      .getClient()
-      .get({
-        TableName: this.tableName,
-        Key: { id },
-      })
-      .promise();
+    const params: GetCommandInput = {
+      TableName: this.tableName,
+      Key: { id },
+    };
+
+    const result = await this.dynamoDBService.getClient.send(
+      new GetCommand(params),
+    );
 
     if (!result.Item) {
       throw new NotFoundException(`Check-in ${id} not found`);
@@ -106,25 +116,23 @@ export class CheckInsService {
       ModifiedAt: new Date().toISOString(),
     };
 
-    await this.dynamoDBService
-      .getClient()
-      .put({
-        TableName: this.tableName,
-        Item: updated,
-      })
-      .promise();
+    const params: PutCommandInput = {
+      TableName: this.tableName,
+      Item: updated,
+    };
+
+    await this.dynamoDBService.getClient.send(new PutCommand(params));
 
     return updated;
   }
 
   async remove(id: string | undefined): Promise<void> {
     await this.findOne(id);
-    await this.dynamoDBService
-      .getClient()
-      .delete({
-        TableName: this.tableName,
-        Key: { id },
-      })
-      .promise();
+
+    const params: DeleteCommandInput = {
+      TableName: this.tableName,
+      Key: { id },
+    };
+    await this.dynamoDBService.getClient.send(new DeleteCommand(params));
   }
 }

@@ -6,23 +6,31 @@ import { OrgWithRoleDto } from './dto/org-with-role.dto';
 import { v4 as uuidv4 } from 'uuid';
 import { OrgMember } from './entities/org-member.entity';
 
+import {
+  PutCommand,
+  QueryCommandInput,
+  QueryCommand,
+  GetCommandInput,
+  GetCommand,
+} from '@aws-sdk/lib-dynamodb';
+
 @Injectable()
 export class OrgService {
   private readonly orgsTable = 'Orgs';
   private readonly orgMembersTable = 'OrgMembers';
 
-  constructor(private readonly dynamoDB: DynamoDBService) {}
+  constructor(private readonly dynamoDBService: DynamoDBService) {}
 
   private client() {
-    return this.dynamoDB.getClient();
+    return this.dynamoDBService.getClient;
   }
 
   async createOrg(dto: CreateOrgDto, userId: string) {
     const orgId = uuidv4();
     const createdAt = new Date().toISOString();
 
-    await this.client()
-      .put({
+    await this.dynamoDBService.getClient.send(
+      new PutCommand({
         TableName: this.orgsTable,
         Item: {
           id: orgId,
@@ -30,20 +38,20 @@ export class OrgService {
           createdBy: userId,
           createdAt,
         },
-      })
-      .promise();
+      }),
+    );
 
-    await this.client()
-      .put({
+    await this.dynamoDBService.getClient.send(
+      new PutCommand({
         TableName: this.orgMembersTable,
         Item: {
           orgId,
           userId,
           role: 'manager',
-          createdAt: createdAt,
+          createdAt,
         },
-      })
-      .promise();
+      }),
+    );
 
     return { orgId, name: dto.name };
   }
@@ -55,8 +63,8 @@ export class OrgService {
 
     const createdAt = new Date().toISOString();
 
-    await this.client()
-      .put({
+    await this.dynamoDBService.getClient.send(
+      new PutCommand({
         TableName: this.orgMembersTable,
         Item: {
           orgId,
@@ -64,8 +72,8 @@ export class OrgService {
           role: dto.role,
           createdAt,
         },
-      })
-      .promise();
+      }),
+    );
 
     return { orgId, userId: dto.email, role: dto.role };
   }
@@ -82,7 +90,7 @@ export class OrgService {
       };
     }
 
-    const params: AWS.DynamoDB.DocumentClient.QueryInput = {
+    const params: QueryCommandInput = {
       TableName: this.orgMembersTable,
       KeyConditionExpression: 'orgId = :orgId',
       ExpressionAttributeValues: {
@@ -95,8 +103,9 @@ export class OrgService {
       params.ExclusiveStartKey = { orgId, email: lastKey };
     }
 
-    const result = await this.client().query(params).promise();
-
+    const result = await this.dynamoDBService.getClient.send(
+      new QueryCommand(params),
+    );
     return {
       items: result.Items as OrgMember[],
       nextKey: result.LastEvaluatedKey
@@ -106,12 +115,13 @@ export class OrgService {
   }
 
   async getOrgsOfUser(email: string): Promise<OrgWithRoleDto> {
-    const memberResult = await this.client()
-      .get({
-        TableName: this.orgMembersTable,
-        Key: { email },
-      })
-      .promise();
+    const params: GetCommandInput = {
+      TableName: this.orgMembersTable,
+      Key: { email },
+    };
+    const memberResult = await this.dynamoDBService.getClient.send(
+      new GetCommand(params),
+    );
 
     if (!memberResult.Item) {
       throw new NotFoundException(`No org found for user ${email}`);
@@ -119,12 +129,13 @@ export class OrgService {
 
     const member: OrgMember = memberResult.Item as OrgMember;
 
-    const orgResult = await this.client()
-      .get({
-        TableName: this.orgsTable,
-        Key: { id: member.orgId },
-      })
-      .promise();
+    const orgParams: GetCommandInput = {
+      TableName: this.orgsTable,
+      Key: { id: member.orgId },
+    };
+    const orgResult = await this.dynamoDBService.getClient.send(
+      new GetCommand(orgParams),
+    );
 
     if (!orgResult.Item) {
       throw new NotFoundException(`Org ${member.orgId} not found`);

@@ -9,6 +9,16 @@ import { SubmitCheckInResponseDto } from './dto/submit-check-in-response.dto';
 import { CheckInAssignment } from './entities/check-in-assignment.entity';
 import { chunk } from 'lodash';
 
+import {
+  BatchWriteCommand,
+  QueryCommand,
+  QueryCommandInput,
+  GetCommandInput,
+  GetCommand,
+  UpdateCommandInput,
+  UpdateCommand,
+} from '@aws-sdk/lib-dynamodb';
+
 @Injectable()
 export class CheckInAssignmentsService {
   private readonly tableName = 'CheckInAssignments';
@@ -16,7 +26,7 @@ export class CheckInAssignmentsService {
   constructor(private readonly dynamoDBService: DynamoDBService) {}
 
   private client() {
-    return this.dynamoDBService.getClient();
+    return this.dynamoDBService.getClient;
   }
 
   async assignCheckIn(
@@ -45,13 +55,13 @@ export class CheckInAssignmentsService {
     const batches = chunk(items, 25);
 
     for (const batch of batches) {
-      await this.client()
-        .batchWrite({
-          RequestItems: {
-            [this.tableName]: batch,
-          },
-        })
-        .promise();
+      const params = {
+        RequestItems: {
+          [this.tableName]: batch,
+        },
+      };
+
+      await this.client().send(new BatchWriteCommand(params));
     }
 
     return { checkInId, assignedTo: dto.memberEmails };
@@ -62,7 +72,7 @@ export class CheckInAssignmentsService {
     limit = 10,
     lastKey?: string,
   ) {
-    const params: AWS.DynamoDB.DocumentClient.QueryInput = {
+    const params: QueryCommandInput = {
       TableName: this.tableName,
       IndexName: 'MemberEmailIndex',
       KeyConditionExpression: 'memberEmail = :email',
@@ -74,7 +84,7 @@ export class CheckInAssignmentsService {
       params.ExclusiveStartKey = { memberEmail, checkInId: lastKey };
     }
 
-    const result = await this.client().query(params).promise();
+    const result = await this.client().send(new QueryCommand(params));
 
     return {
       items: result.Items as CheckInAssignment[],
@@ -91,12 +101,12 @@ export class CheckInAssignmentsService {
   ) {
     const submittedAt = new Date().toISOString();
 
-    const existing = await this.client()
-      .get({
-        TableName: this.tableName,
-        Key: { checkInId, memberEmail },
-      })
-      .promise();
+    const params: GetCommandInput = {
+      TableName: this.tableName,
+      Key: { checkInId, memberEmail },
+    };
+
+    const existing = await this.client().send(new GetCommand(params));
 
     if (!existing.Item) {
       throw new NotFoundException(
@@ -104,21 +114,20 @@ export class CheckInAssignmentsService {
       );
     }
 
-    await this.client()
-      .update({
-        TableName: this.tableName,
-        Key: { checkInId, memberEmail },
-        UpdateExpression:
-          'set #status = :submitted, answers = :answers, submittedAt = :submittedAt',
-        ExpressionAttributeNames: { '#status': 'status' },
-        ExpressionAttributeValues: {
-          ':submitted': 'submitted',
-          ':answers': dto.answers,
-          ':submittedAt': submittedAt,
-        },
-      })
-      .promise();
+    const updateParams: UpdateCommandInput = {
+      TableName: this.tableName,
+      Key: { checkInId, memberEmail },
+      UpdateExpression: 'set #status = :status',
+      ExpressionAttributeNames: {
+        '#status': 'status',
+      },
+      ExpressionAttributeValues: {
+        ':status': 'submitted',
+      },
+      ReturnValues: 'ALL_NEW',
+    };
 
+    await this.client().send(new UpdateCommand(updateParams));
     return { checkInId, memberEmail, status: 'submitted' };
   }
 }

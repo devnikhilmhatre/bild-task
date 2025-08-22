@@ -9,7 +9,14 @@ import { DynamoDBService } from '../dynamodb/dynamodb.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
-
+import {
+  PutCommand,
+  PutCommandInput,
+  GetCommand,
+  GetCommandInput,
+  DeleteCommandInput,
+  DeleteCommand,
+} from '@aws-sdk/lib-dynamodb';
 @Injectable()
 export class UsersService {
   private readonly tableName = 'Users';
@@ -33,25 +40,24 @@ export class UsersService {
       modifiedAt: new Date().toISOString(),
     };
 
-    await this.dynamoDBService
-      .getClient()
-      .put({
-        TableName: this.tableName,
-        Item: user,
-      })
-      .promise();
+    const params: PutCommandInput = {
+      TableName: this.tableName,
+      Item: user,
+    };
+
+    await this.dynamoDBService.getClient.send(new PutCommand(params));
 
     return user;
   }
 
   async findByEmail(email: string): Promise<User> {
-    const result = await this.dynamoDBService
-      .getClient()
-      .get({
-        TableName: this.tableName,
-        Key: { email },
-      })
-      .promise();
+    const params: GetCommandInput = {
+      TableName: this.tableName,
+      Key: { email },
+    };
+    const result = await this.dynamoDBService.getClient.send(
+      new GetCommand(params),
+    );
 
     if (!result.Item) throw new NotFoundException(`User ${email} not found`);
     return result.Item as User;
@@ -72,25 +78,22 @@ export class UsersService {
       modifiedAt: new Date().toISOString(),
     };
 
-    await this.dynamoDBService
-      .getClient()
-      .put({
-        TableName: this.tableName,
-        Item: updated,
-      })
-      .promise();
+    const params: PutCommandInput = {
+      TableName: this.tableName,
+      Item: updated,
+    };
+    await this.dynamoDBService.getClient.send(new PutCommand(params));
 
     return updated;
   }
 
   async remove(email: string): Promise<void> {
-    await this.dynamoDBService
-      .getClient()
-      .delete({
-        TableName: this.tableName,
-        Key: { email },
-      })
-      .promise();
+    const params: DeleteCommandInput = {
+      TableName: this.tableName,
+      Key: { email },
+    };
+
+    await this.dynamoDBService.getClient.send(new DeleteCommand(params));
   }
 
   async verifyPassword(email: string, password: string): Promise<boolean> {
