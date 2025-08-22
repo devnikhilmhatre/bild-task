@@ -1,0 +1,167 @@
+{
+  "info": {
+    "name": "Bild API",
+    "_postman_id": "12345678-abcd-efgh-ijkl-9876543210ab",
+    "description": "Postman collection for NestJS Bild API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth - Sign In",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/auth/signin",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["auth","signin"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Users - Create User",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Content-Type", "value": "application/json"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"user@example.com\",\n  \"name\": \"John Doe\",\n  \"password\": \"password123\"\n}"
+        },
+        "url": {"raw":"http://localhost:3000/users","protocol":"http","host":["localhost"],"port":"3000","path":["users"]}
+      },
+      "response": []
+    },
+    {
+      "name": "Users - Get Current User",
+      "request": {
+        "method": "GET",
+        "header": [
+          {"key":"Authorization","value":"Bearer {{JWT_TOKEN}}"}
+        ],
+        "url": {"raw":"http://localhost:3000/users","protocol":"http","host":["localhost"],"port":"3000","path":["users"]}
+      },
+      "response": []
+    },
+    {
+      "name": "Users - Update User",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {"key":"Authorization","value":"Bearer {{JWT_TOKEN}}"},
+          {"key":"Content-Type","value":"application/json"}
+        ],
+        "body": {
+          "mode":"raw",
+          "raw": "{\n  \"name\": \"John Updated\"\n}"
+        },
+        "url": {"raw":"http://localhost:3000/users","protocol":"http","host":["localhost"],"port":"3000","path":["users"]}
+      },
+      "response": []
+    },
+    {
+      "name": "Users - Delete User",
+      "request": {
+        "method": "DELETE",
+        "header":[{"key":"Authorization","value":"Bearer {{JWT_TOKEN}}"}],
+        "url": {"raw":"http://localhost:3000/users","protocol":"http","host":["localhost"],"port":"3000","path":["users"]}
+      },
+      "response": []
+    },
+    {
+      "name": "Org - Create Org",
+      "request": {
+        "method": "POST",
+        "header":[{"key":"Authorization","value":"Bearer {{JWT_TOKEN}}"},{"key":"Content-Type","value":"application/json"}],
+        "body":{"mode":"raw","raw":"{\n  \"name\":\"MyOrg\"\n}"},
+        "url":{"raw":"http://localhost:3000/orgs","protocol":"http","host":["localhost"],"port":"3000","path":["orgs"]}
+      },
+      "response":[]
+    },
+    {
+      "name": "Org - Add Member",
+      "request": {
+        "method": "POST",
+        "header":[{"key":"Authorization","value":"Bearer {{JWT_TOKEN}}"},{"key":"Content-Type","value":"application/json"}],
+        "body":{"mode":"raw","raw":"{\n  \"email\":\"user@example.com\",\n  \"role\":\"member\"\n}"},
+        "url":{"raw":"http://localhost:3000/orgs/members","protocol":"http","host":["localhost"],"port":"3000","path":["orgs","members"]}
+      },
+      "response":[]
+    },
+    {
+      "name": "Org - Get Members",
+      "request": {
+        "method":"GET",
+        "header":[{"key":"Authorization","value":"Bearer {{JWT_TOKEN}}"}],
+        "url":{"raw":"http://localhost:3000/orgs/members?limit=10","protocol":"http","host":["localhost"],"port":"3000","path":["orgs","members"],"query":[{"key":"limit","value":"10"}]}
+      },
+      "response":[]
+    },
+    {
+      "name":"Check-Ins - Create",
+      "request":{"method":"POST","header":[{"key":"Authorization","value":"Bearer {{JWT_TOKEN}}"},{"key":"Content-Type","value":"application/json"}],
+        "body":{"mode":"raw","raw":"{\n  \"title\":\"Daily Standup\",\n  \"description\":\"Team daily check-in\"\n}"},
+        "url":{"raw":"http://localhost:3000/check-ins","protocol":"http","host":["localhost"],"port":"3000","path":["check-ins"]}
+      },
+      "response":[]
+    },
+    {
+      "name":"Check-Ins - Get All",
+      "request":{"method":"GET","header":[{"key":"Authorization","value":"Bearer {{JWT_TOKEN}}"}],
+        "url":{"raw":"http://localhost:3000/check-ins?limit=10","protocol":"http","host":["localhost"],"port":"3000","path":["check-ins"],"query":[{"key":"limit","value":"10"}]}
+      },
+      "response":[]
+    },
+    {
+      "name":"Check-Ins - Update",
+      "request":{"method":"PATCH","header":[{"key":"Authorization","value":"Bearer {{JWT_TOKEN}}"},{"key":"Content-Type","value":"application/json"}],
+        "body":{"mode":"raw","raw":"{\n  \"description\":\"Updated description\"\n}"},
+        "url":{"raw":"http://localhost:3000/check-ins","protocol":"http","host":["localhost"],"port":"3000","path":["check-ins"]}
+      },
+      "response":[]
+    },
+    {
+      "name":"Check-Ins - Delete",
+      "request":{"method":"DELETE","header":[{"key":"Authorization","value":"Bearer {{JWT_TOKEN}}"}],
+        "url":{"raw":"http://localhost:3000/check-ins","protocol":"http","host":["localhost"],"port":"3000","path":["check-ins"]}
+      },
+      "response":[]
+    },
+    {
+      "name":"Assignments - Assign Check-In",
+      "request":{"method":"POST","header":[{"key":"Authorization","value":"Bearer {{JWT_TOKEN}}"},{"key":"Content-Type","value":"application/json"}],
+        "body":{"mode":"raw","raw":"{\n  \"emails\": [\"user@example.com\"]\n}"},
+        "url":{"raw":"http://localhost:3000/check-in-assignments/123/assign","protocol":"http","host":["localhost"],"port":"3000","path":["check-in-assignments","123","assign"]}
+      },
+      "response":[]
+    },
+    {
+      "name":"Assignments - Submit Response",
+      "request":{"method":"POST","header":[{"key":"Authorization","value":"Bearer {{JWT_TOKEN}}"},{"key":"Content-Type","value":"application/json"}],
+        "body":{"mode":"raw","raw":"{\n  \"answers\": {\n    \"q1\":\"Answer 1\"\n  }\n}"},
+        "url":{"raw":"http://localhost:3000/check-in-assignments/123/submit","protocol":"http","host":["localhost"],"port":"3000","path":["check-in-assignments","123","submit"]}
+      },
+      "response":[]
+    },
+    {
+      "name":"Assignments - Get My Assignments",
+      "request":{"method":"GET","header":[{"key":"Authorization","value":"Bearer {{JWT_TOKEN}}"}],
+        "url":{"raw":"http://localhost:3000/check-in-assignments?limit=10","protocol":"http","host":["localhost"],"port":"3000","path":["check-in-assignments"],"query":[{"key":"limit","value":"10"}]}
+      },
+      "response":[]
+    }
+  ]
+}
