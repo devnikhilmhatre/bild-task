@@ -50,7 +50,7 @@ export class UsersService {
     return user;
   }
 
-  async findByEmail(email: string): Promise<User> {
+  async findByEmail(email: string): Promise<User | null> {
     const params: GetCommandInput = {
       TableName: this.tableName,
       Key: { email },
@@ -59,12 +59,14 @@ export class UsersService {
       new GetCommand(params),
     );
 
-    if (!result.Item) throw new NotFoundException(`User ${email} not found`);
-    return result.Item as User;
+    return (result.Item as User) || null;
   }
 
   async update(email: string, dto: UpdateUserDto): Promise<User> {
     const existing = await this.findByEmail(email);
+    if (!existing) {
+      throw new NotFoundException('Not Found');
+    }
 
     let password = existing.password;
     if (dto.password) {
